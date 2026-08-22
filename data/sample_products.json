@@ -1,0 +1,667 @@
+{
+  "_note": "Synthetic product catalog for the Closing Salesman MVP (Part 5). Not live Myntra inventory -- hand-built so the material/fit/trust/returns modules have real per-SKU data to work against. sample_reviews phrasing is grounded in the recurring language the AI discovery engine already found in real Myntra/Ajio reviews (runs small, feels cheap for the price, fake reviews, etc.) -- see the sibling myntra-review-discovery-engine repo's PPT/slides_info.md and src/analysis/taxonomy.py for the source taxonomy this app's blocker chips reuse.",
+  "clusters": [
+    {
+      "cluster_id": "topwear_casual_shirt",
+      "category": "Men's Casual Shirt",
+      "products": [
+        {
+          "sku_id": "T1-A",
+          "title": "Roadster Men Slim Fit Cotton Casual Shirt",
+          "brand": "Roadster",
+          "price": 899,
+          "colors": [
+            "White",
+            "Sky Blue",
+            "Olive"
+          ],
+          "sizes": [
+            {
+              "size": "S",
+              "chest_cm": 96
+            },
+            {
+              "size": "M",
+              "chest_cm": 101
+            },
+            {
+              "size": "L",
+              "chest_cm": 106
+            },
+            {
+              "size": "XL",
+              "chest_cm": 111
+            }
+          ],
+          "fit": {
+            "claimed_fit": "slim",
+            "review_consensus": "runs small — order one size up",
+            "based_on_n_reviews": 42
+          },
+          "material": {
+            "composition": "100% Cotton",
+            "feel_notes": "breathable, slightly stiff until the first wash",
+            "care_instructions": ""
+          },
+          "rating": 4.1,
+          "review_count": 812,
+          "sample_reviews": [
+            {
+              "aspect": "fit",
+              "rating": 3,
+              "text": "Runs small, ordered L but it fits like a size M. Order one size up."
+            },
+            {
+              "aspect": "material",
+              "rating": 4,
+              "text": "Fabric feels a bit thin for the price but softens after a wash."
+            },
+            {
+              "aspect": "trust",
+              "rating": 5,
+              "text": "True to what's shown in the photos, no complaints."
+            },
+            {
+              "aspect": "fit",
+              "rating": 4,
+              "text": "Slim fit as described, snug through the shoulders."
+            },
+            {
+              "aspect": "material",
+              "rating": 4,
+              "text": "Good breathable cotton for daily wear, holds up after multiple washes."
+            },
+            {
+              "aspect": "general",
+              "rating": 5,
+              "text": "Great everyday shirt for the price, would buy again."
+            }
+          ],
+          "return_policy": {
+            "window_days": 15,
+            "type": "exchange-only",
+            "who_pays_return_shipping": "customer"
+          },
+          "trust_signals": {
+            "verified_purchase_pct": 78,
+            "top_complaint": "sizing runs smaller than the chart suggests",
+            "top_praise": "breathable cotton, good for daily wear"
+          },
+          "wishlisted_size": "M"
+        },
+        {
+          "sku_id": "T1-B",
+          "title": "H&M Regular Fit Cotton-Linen Shirt",
+          "brand": "H&M",
+          "price": 1499,
+          "colors": [
+            "Beige",
+            "White"
+          ],
+          "sizes": [
+            {
+              "size": "S",
+              "chest_cm": 97
+            },
+            {
+              "size": "M",
+              "chest_cm": 102
+            },
+            {
+              "size": "L",
+              "chest_cm": 107
+            },
+            {
+              "size": "XL",
+              "chest_cm": 112
+            }
+          ],
+          "fit": {
+            "claimed_fit": "regular",
+            "review_consensus": "true to size",
+            "based_on_n_reviews": 30
+          },
+          "material": {
+            "composition": "70% Cotton, 30% Linen",
+            "feel_notes": "breathable, wrinkles easily, has a premium drape",
+            "care_instructions": "Machine wash cold with like colors, do not tumble dry, cool iron if needed"
+          },
+          "rating": 4.4,
+          "review_count": 356,
+          "sample_reviews": [
+            {
+              "aspect": "material",
+              "rating": 4,
+              "text": "Linen blend wrinkles fast but feels premium, worth the price."
+            },
+            {
+              "aspect": "fit",
+              "rating": 5,
+              "text": "True to size, ordered my usual and it fit perfectly."
+            },
+            {
+              "aspect": "trust",
+              "rating": 5,
+              "text": "Exactly as shown in the listing photos, color matched perfectly."
+            },
+            {
+              "aspect": "material",
+              "rating": 4,
+              "text": "Feels premium but needs ironing after every wash."
+            },
+            {
+              "aspect": "general",
+              "rating": 4,
+              "text": "Great for smart-casual occasions, a bit pricey though."
+            }
+          ],
+          "return_policy": {
+            "window_days": 30,
+            "type": "return-and-refund",
+            "who_pays_return_shipping": "brand"
+          },
+          "trust_signals": {
+            "verified_purchase_pct": 85,
+            "top_complaint": "wrinkles fast, needs frequent ironing",
+            "top_praise": "premium fabric feel, true to size"
+          },
+          "wishlisted_size": "M"
+        },
+        {
+          "sku_id": "T1-C",
+          "title": "HRX Slim Fit Poly-Cotton Casual Shirt",
+          "brand": "HRX by Hrithik Roshan",
+          "price": 699,
+          "colors": [
+            "Black",
+            "Navy"
+          ],
+          "sizes": [
+            {
+              "size": "S",
+              "chest_cm": 98
+            },
+            {
+              "size": "M",
+              "chest_cm": 103
+            },
+            {
+              "size": "L",
+              "chest_cm": 108
+            },
+            {
+              "size": "XL",
+              "chest_cm": 113
+            }
+          ],
+          "fit": {
+            "claimed_fit": "slim",
+            "review_consensus": "runs large — order one size down",
+            "based_on_n_reviews": 55
+          },
+          "material": {
+            "composition": "65% Polyester, 35% Cotton",
+            "feel_notes": "slightly synthetic feel, doesn't breathe as well as pure cotton",
+            "care_instructions": ""
+          },
+          "rating": 3.8,
+          "review_count": 640,
+          "sample_reviews": [
+            {
+              "aspect": "material",
+              "rating": 3,
+              "text": "Material feels a bit cheap for the price, thinner than expected."
+            },
+            {
+              "aspect": "fit",
+              "rating": 3,
+              "text": "Fit is loose even in size M, would order a size down next time."
+            },
+            {
+              "aspect": "trust",
+              "rating": 2,
+              "text": "Color looked slightly different from the photos on the listing."
+            },
+            {
+              "aspect": "general",
+              "rating": 4,
+              "text": "Affordable and decent for the price, good for casual wear."
+            },
+            {
+              "aspect": "material",
+              "rating": 3,
+              "text": "Doesn't feel as breathable as my other cotton shirts."
+            }
+          ],
+          "return_policy": {
+            "window_days": 7,
+            "type": "exchange-only",
+            "who_pays_return_shipping": "customer"
+          },
+          "trust_signals": {
+            "verified_purchase_pct": 61,
+            "top_complaint": "fabric feels cheap, colour slightly different from photos",
+            "top_praise": "affordable, good value for the price"
+          },
+          "wishlisted_size": "M"
+        }
+      ]
+    },
+    {
+      "cluster_id": "womenswear_handbags",
+      "category": "Women's Handbags",
+      "products": [
+        {
+          "sku_id": "B4-A",
+          "title": "Lavie Women Black Structured Handbag",
+          "brand": "Lavie",
+          "price": 1799,
+          "colors": [
+            "Black"
+          ],
+          "sizes": [
+            {
+              "size": "Regular",
+              "length_cm": 28,
+              "height_cm": 20,
+              "depth_cm": 11
+            }
+          ],
+          "fit": {
+            "claimed_fit": "structured",
+            "review_consensus": "fits daily essentials + a small tablet comfortably",
+            "based_on_n_reviews": 52
+          },
+          "material": {
+            "composition": "PU Leather (Vegan)",
+            "feel_notes": "structured, holds its shape well, slightly stiff out of the box",
+            "care_instructions": "Wipe clean with a dry cloth, avoid direct sunlight for long periods"
+          },
+          "rating": 4.3,
+          "review_count": 640,
+          "sample_reviews": [
+            {
+              "aspect": "material",
+              "rating": 4,
+              "text": "Feels a bit stiff at first but softens with use, holds its shape nicely."
+            },
+            {
+              "aspect": "trust",
+              "rating": 5,
+              "text": "True to what's shown in the photos, no complaints."
+            },
+            {
+              "aspect": "fit",
+              "rating": 4,
+              "text": "Fits my daily essentials plus a small tablet, more spacious than it looks."
+            },
+            {
+              "aspect": "general",
+              "rating": 4,
+              "text": "Great everyday bag for the price, would buy again."
+            }
+          ],
+          "return_policy": {
+            "window_days": 15,
+            "type": "exchange-only",
+            "who_pays_return_shipping": "customer"
+          },
+          "trust_signals": {
+            "verified_purchase_pct": 80,
+            "top_complaint": "handles feel slightly stiff initially",
+            "top_praise": "structured shape, true to photos"
+          },
+          "wishlisted_size": "Regular"
+        },
+        {
+          "sku_id": "B4-B",
+          "title": "Caprese Women Black Tote Handbag",
+          "brand": "Caprese",
+          "price": 2299,
+          "colors": [
+            "Black"
+          ],
+          "sizes": [
+            {
+              "size": "Regular",
+              "length_cm": 34,
+              "height_cm": 27,
+              "depth_cm": 13
+            }
+          ],
+          "fit": {
+            "claimed_fit": "relaxed tote",
+            "review_consensus": "fits a 14-inch laptop and daily essentials",
+            "based_on_n_reviews": 30
+          },
+          "material": {
+            "composition": "Genuine Leather",
+            "feel_notes": "soft grain leather, premium feel, develops a slight sheen over time",
+            "care_instructions": "Use a leather conditioner every few months, avoid water exposure"
+          },
+          "rating": 4.4,
+          "review_count": 356,
+          "sample_reviews": [
+            {
+              "aspect": "material",
+              "rating": 5,
+              "text": "Genuine leather feels premium, worth the price."
+            },
+            {
+              "aspect": "fit",
+              "rating": 5,
+              "text": "Roomy enough for my 14-inch laptop plus daily essentials."
+            },
+            {
+              "aspect": "trust",
+              "rating": 5,
+              "text": "Exactly as shown in the listing photos, colour matched perfectly."
+            },
+            {
+              "aspect": "general",
+              "rating": 4,
+              "text": "Great for work, a bit pricey though."
+            }
+          ],
+          "return_policy": {
+            "window_days": 30,
+            "type": "return-and-refund",
+            "who_pays_return_shipping": "brand"
+          },
+          "trust_signals": {
+            "verified_purchase_pct": 85,
+            "top_complaint": "on the pricier side",
+            "top_praise": "premium leather feel, true to size"
+          },
+          "wishlisted_size": "Regular"
+        },
+        {
+          "sku_id": "B4-C",
+          "title": "Baggit Women Tan Leather Satchel",
+          "brand": "Baggit",
+          "price": 1199,
+          "colors": [
+            "Tan"
+          ],
+          "sizes": [
+            {
+              "size": "Regular",
+              "length_cm": 26,
+              "height_cm": 19,
+              "depth_cm": 10
+            }
+          ],
+          "fit": {
+            "claimed_fit": "compact satchel",
+            "review_consensus": "fits phone, wallet, and basics — snug for anything larger",
+            "based_on_n_reviews": 45
+          },
+          "material": {
+            "composition": "PU Leather",
+            "feel_notes": "lightweight but feels a bit synthetic, minimal structure",
+            "care_instructions": ""
+          },
+          "rating": 3.7,
+          "review_count": 520,
+          "sample_reviews": [
+            {
+              "aspect": "material",
+              "rating": 3,
+              "text": "Material feels a bit cheap for the price, thinner than expected."
+            },
+            {
+              "aspect": "fit",
+              "rating": 3,
+              "text": "Smaller than it looks in photos, fits just the basics."
+            },
+            {
+              "aspect": "trust",
+              "rating": 2,
+              "text": "Colour looked slightly different from the photos on the listing."
+            },
+            {
+              "aspect": "general",
+              "rating": 4,
+              "text": "Affordable and decent for the price, good for everyday use."
+            }
+          ],
+          "return_policy": {
+            "window_days": 7,
+            "type": "exchange-only",
+            "who_pays_return_shipping": "customer"
+          },
+          "trust_signals": {
+            "verified_purchase_pct": 60,
+            "top_complaint": "material feels cheap, smaller than expected",
+            "top_praise": "affordable, good value for the price"
+          },
+          "wishlisted_size": "Regular"
+        }
+      ]
+    },
+    {
+      "cluster_id": "footwear_running_shoes",
+      "category": "Unisex Running Shoes",
+      "products": [
+        {
+          "sku_id": "S3-A",
+          "title": "UNDER ARMOUR Unisex Curry Running Shoes",
+          "brand": "Under Armour",
+          "price": 12599,
+          "colors": [
+            "Black/Pink",
+            "White/Grey"
+          ],
+          "sizes": [
+            {
+              "size": "UK6",
+              "foot_length_cm": 24.5
+            },
+            {
+              "size": "UK7",
+              "foot_length_cm": 25.4
+            },
+            {
+              "size": "UK8",
+              "foot_length_cm": 26.2
+            },
+            {
+              "size": "UK9",
+              "foot_length_cm": 27.1
+            }
+          ],
+          "fit": {
+            "claimed_fit": "true to size",
+            "review_consensus": "true to size, snug fit",
+            "based_on_n_reviews": 60
+          },
+          "material": {
+            "composition": "Mesh upper, EVA foam sole",
+            "feel_notes": "breathable mesh, cushioned sole",
+            "care_instructions": "Wipe clean with a damp cloth, do not machine wash"
+          },
+          "rating": 4.2,
+          "review_count": 980,
+          "sample_reviews": [
+            {
+              "aspect": "fit",
+              "rating": 5,
+              "text": "True to size, snug through the midfoot as expected."
+            },
+            {
+              "aspect": "material",
+              "rating": 5,
+              "text": "Cushioning is excellent for daily runs, breathable mesh."
+            },
+            {
+              "aspect": "trust",
+              "rating": 5,
+              "text": "Reviews and photos match the actual product exactly."
+            },
+            {
+              "aspect": "general",
+              "rating": 3,
+              "text": "Narrow fit, not ideal for wider feet."
+            }
+          ],
+          "return_policy": {
+            "window_days": 30,
+            "type": "return-and-refund",
+            "who_pays_return_shipping": "brand"
+          },
+          "trust_signals": {
+            "verified_purchase_pct": 82,
+            "top_complaint": "narrow fit for wide feet",
+            "top_praise": "true to size, great cushioning"
+          },
+          "wishlisted_size": "UK8"
+        },
+        {
+          "sku_id": "S3-B",
+          "title": "UNDER ARMOUR Unisex Project Rock Training Shoes",
+          "brand": "Under Armour",
+          "price": 16999,
+          "colors": [
+            "Olive/Black"
+          ],
+          "sizes": [
+            {
+              "size": "UK6",
+              "foot_length_cm": 24.6
+            },
+            {
+              "size": "UK7",
+              "foot_length_cm": 25.5
+            },
+            {
+              "size": "UK8",
+              "foot_length_cm": 26.3
+            },
+            {
+              "size": "UK9",
+              "foot_length_cm": 27.2
+            }
+          ],
+          "fit": {
+            "claimed_fit": "true to size",
+            "review_consensus": "runs small — order half size up",
+            "based_on_n_reviews": 40
+          },
+          "material": {
+            "composition": "Synthetic knit upper, rubber sole",
+            "feel_notes": "supportive and structured, less breathable than mesh",
+            "care_instructions": ""
+          },
+          "rating": 4.6,
+          "review_count": 520,
+          "sample_reviews": [
+            {
+              "aspect": "general",
+              "rating": 5,
+              "text": "Excellent grip and support during weight training."
+            },
+            {
+              "aspect": "fit",
+              "rating": 4,
+              "text": "Runs slightly small, ordered a half size up and it was perfect."
+            },
+            {
+              "aspect": "trust",
+              "rating": 5,
+              "text": "Authentic feel, matches the listing photos exactly."
+            },
+            {
+              "aspect": "material",
+              "rating": 4,
+              "text": "Very supportive but gets warm on longer sessions."
+            }
+          ],
+          "return_policy": {
+            "window_days": 30,
+            "type": "return-and-refund",
+            "who_pays_return_shipping": "brand"
+          },
+          "trust_signals": {
+            "verified_purchase_pct": 90,
+            "top_complaint": "runs slightly small, gets warm",
+            "top_praise": "excellent support for training"
+          },
+          "wishlisted_size": "UK8"
+        },
+        {
+          "sku_id": "S3-C",
+          "title": "Campus Unisex Mesh Running Shoes",
+          "brand": "Campus",
+          "price": 1799,
+          "colors": [
+            "Grey/Orange",
+            "Black/Red"
+          ],
+          "sizes": [
+            {
+              "size": "UK6",
+              "foot_length_cm": 24.7
+            },
+            {
+              "size": "UK7",
+              "foot_length_cm": 25.6
+            },
+            {
+              "size": "UK8",
+              "foot_length_cm": 26.4
+            },
+            {
+              "size": "UK9",
+              "foot_length_cm": 27.3
+            }
+          ],
+          "fit": {
+            "claimed_fit": "regular",
+            "review_consensus": "runs large — order one size down",
+            "based_on_n_reviews": 75
+          },
+          "material": {
+            "composition": "Mesh upper, PU sole",
+            "feel_notes": "lightweight, sole wears down faster than premium alternatives",
+            "care_instructions": ""
+          },
+          "rating": 3.7,
+          "review_count": 1200,
+          "sample_reviews": [
+            {
+              "aspect": "material",
+              "rating": 3,
+              "text": "Sole quality feels cheap, started wearing down after about 2 months."
+            },
+            {
+              "aspect": "fit",
+              "rating": 3,
+              "text": "Runs large, order one size down from your usual."
+            },
+            {
+              "aspect": "trust",
+              "rating": 2,
+              "text": "Photos looked more premium than the actual product felt — a bit misleading."
+            },
+            {
+              "aspect": "general",
+              "rating": 4,
+              "text": "Lightweight and affordable, decent for casual walks."
+            }
+          ],
+          "return_policy": {
+            "window_days": 10,
+            "type": "exchange-only",
+            "who_pays_return_shipping": "customer"
+          },
+          "trust_signals": {
+            "verified_purchase_pct": 58,
+            "top_complaint": "sole wears down quickly, feels cheap",
+            "top_praise": "lightweight and affordable"
+          },
+          "wishlisted_size": "UK8"
+        }
+      ]
+    }
+  ]
+}

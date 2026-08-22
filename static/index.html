@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Myntra — Compare Wishlist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          primary: '#ff3f6c',
+          secondary: '#ff905a',
+          neutral: '#282c3f',
+          success: '#03a685',
+          ratingteal: '#14cda8',
+        },
+        fontFamily: {
+          headline: ['Hanken Grotesk', 'sans-serif'],
+          body: ['Be Vietnam Pro', 'sans-serif'],
+        },
+        boxShadow: {
+          sheet: '0px -8px 24px rgba(0,0,0,0.12)',
+        },
+      },
+    },
+  };
+</script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.25.6/babel.min.js" crossorigin></script>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #eceef4; font-family: 'Be Vietnam Pro', sans-serif; overflow: hidden; }
+  #root { height: 100%; display: flex; align-items: center; justify-content: center; }
+  #phone-frame::-webkit-scrollbar { width: 4px; }
+  #phone-frame ::-webkit-scrollbar { width: 4px; }
+  #phone-frame ::-webkit-scrollbar-thumb { background: #d4d5d9; border-radius: 999px; }
+  .sheet-enter { animation: sheetUp 260ms ease-out; }
+  @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .chat-enter { animation: fadeUp 200ms ease-out; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .pulse-dot { animation: pulse 1.1s infinite ease-in-out; }
+  @keyframes pulse { 0%,80%,100% { opacity: .3; } 40% { opacity: 1; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  /* ---------- Streamlit static-component protocol ----------
+     Official postMessage protocol (docs.streamlit.io/library/components/components-api,
+     "Create a static component") — no streamlit-component-lib build needed. This is what
+     lets the browser send the user's query back to Python (where the Groq call happens,
+     keeping GROQ_API_KEY server-side) and receive the answer back without a page reload. */
+  function sendToStreamlit(type, data) {
+    window.parent.postMessage(Object.assign({ isStreamlitMessage: true, type }, data), '*');
+  }
+  function markComponentReady() {
+    sendToStreamlit('streamlit:componentReady', { apiVersion: 1 });
+  }
+  function setFrameHeight(height) {
+    sendToStreamlit('streamlit:setFrameHeight', { height });
+  }
+  function sendComponentValue(value) {
+    sendToStreamlit('streamlit:setComponentValue', { value, dataType: 'json' });
+  }
+
+  window.__latestRenderData = null;
+  window.__renderListeners = [];
+  window.addEventListener('message', (event) => {
+    const data = event.data;
+    if (!data || data.type !== 'streamlit:render') return;
+    window.__latestRenderData = data;
+    window.__renderListeners.forEach(fn => fn(data));
+  });
+  markComponentReady();
+</script>
+<script type="text/babel" data-presets="react">
+
+const { useState, useRef, useEffect, useMemo } = React;
+
+function useStreamlitRender() {
+  const [renderData, setRenderData] = useState(window.__latestRenderData);
+  useEffect(() => {
+    const listener = (data) => setRenderData(data);
+    window.__renderListeners.push(listener);
+    if (window.__latestRenderData) setRenderData(window.__latestRenderData);
+    return () => { window.__renderListeners = window.__renderListeners.filter(l => l !== listener); };
+  }, []);
+  return renderData;
+}
+
+function askServer(action, selectedSkus, messages) {
+  const actionId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+  sendComponentValue({
+    action,
+    actionId,
+    selectedSkus,
+    messages: messages.map(m => ({ role: m.role, text: m.text })),
+  });
+  return actionId;
+}
+
+/* ---------- helpers ---------- */
+// Same hand-verified LoremFlickr keyword+lock pairs as closing-salesman-mvp's
+// src/ui/screens.py (_PRODUCT_IMAGES) — each was actually opened and eyeballed
+// to confirm it shows the right kind of item, not just guessed from the tag.
+// Stock photos, not real product photography — there is no live Myntra catalog
+// behind this synthetic dataset.
+const PRODUCT_IMAGES = {
+  'T1-A': ['mens-shirt', 1],
+  'T1-B': ['mens-shirt', 2],
+  'T1-C': ['mens-shirt', 6],
+  'B4-A': ['leather,bag,black', 1],
+  'B4-B': ['leather,bag,black', 3],
+  'B4-C': ['brown,leather,bag', 1],
+  'S3-A': ['sneaker', 2],
+  'S3-B': ['sneaker', 7],
+  'S3-C': ['sneaker', 6],
+};
+const CATEGORY_BG = {
+  topwear_casual_shirt: 'bg-gradient-to-br from-sky-100 to-indigo-100',
+  womenswear_handbags: 'bg-gradient-to-br from-amber-100 to-rose-100',
+  footwear_running_shoes: 'bg-gradient-to-br from-emerald-100 to-teal-100',
+};
+
+function productImageUrl(sku_id, size = 400) {
+  const [keyword, lock] = PRODUCT_IMAGES[sku_id] || ['fashion', 1];
+  return `https://loremflickr.com/${size}/${size}/${keyword}?lock=${lock}`;
+}
+
+function formatPrice(n) {
+  return '₹' + Number(n).toLocaleString('en-IN');
+}
+
+function returnScore(p) {
+  let score = p.return_policy.window_days || 0;
+  if (p.return_policy.type === 'return-and-refund') score += 15;
+  if (p.return_policy.who_pays_return_shipping === 'brand') score += 10;
+  return score;
+}
+
+/* ---------- comparability check (client-side, no Groq needed) ---------- */
+function assessComparability(products) {
+  const clusterIds = new Set(products.map(p => p.cluster_id));
+  if (clusterIds.size > 1) {
+    const cats = [...new Set(products.map(p => p.category))];
+    return { comparable: false, reason: `A ${cats.join(' and a ')} are too different in category to compare meaningfully.` };
+  }
+  return { comparable: true };
+}
+
+/* ---------- UI atoms ---------- */
+function CloseButton({ onClick }) {
+  return (
+    <button onClick={onClick} className="w-8 h-8 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center text-neutral text-lg leading-none">
+      ×
+    </button>
+  );
+}
+
+function BackButton({ onClick }) {
+  return (
+    <button onClick={onClick} className="w-8 h-8 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center text-neutral text-base leading-none">
+      ‹
+    </button>
+  );
+}
+
+const CATEGORY_EMOJI_FALLBACK = {
+  topwear_casual_shirt: '👕',
+  womenswear_handbags: '👜',
+  footwear_running_shoes: '👟',
+};
+
+function ProductThumb({ product, size = 'h-28' }) {
+  const [errored, setErrored] = useState(false);
+  if (errored) {
+    return (
+      <div className={`${size} w-full rounded-lg ${CATEGORY_BG[product.cluster_id] || 'bg-gray-100'} flex items-center justify-center text-3xl`}>
+        {CATEGORY_EMOJI_FALLBACK[product.cluster_id] || '🛍️'}
+      </div>
+    );
+  }
+  return (
+    <div className={`${size} w-full rounded-lg overflow-hidden bg-gray-100`}>
+      <img
+        src={productImageUrl(product.sku_id)}
+        alt={product.title}
+        className="w-full h-full object-cover"
+        loading="lazy"
+        onError={() => setErrored(true)}
+      />
+    </div>
+  );
+}
+
+/* ---------- Screen 1: Wishlist ---------- */
+function WishlistScreen({ items, onOpenCompare }) {
+  return (
+    <div className="flex flex-col h-full bg-[#fbf8ff]">
+      <div className="px-4 pt-4 pb-2 flex items-center justify-between">
+        <h1 className="font-headline font-bold text-lg text-neutral">Wishlist</h1>
+        <span className="text-xs text-neutral/50 font-body">{items.length} items</span>
+      </div>
+
+      <div className="px-4 pb-3">
+        <button
+          onClick={onOpenCompare}
+          className="w-full rounded-xl bg-gradient-to-r from-primary to-secondary text-white px-4 py-3 flex items-center justify-between shadow-md active:scale-[0.99] transition-transform"
+        >
+          <span className="text-left">
+            <div className="font-headline font-bold text-sm">Want help in comparing?</div>
+            <div className="font-body text-[11px] text-white/85">Pick up to 3 wishlist items — we'll help you decide</div>
+          </span>
+          <span className="text-xl">✨</span>
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-4 pb-6">
+        <div className="grid grid-cols-2 gap-3">
+          {items.map(p => (
+            <div key={p.sku_id} className="rounded-lg border border-[#eaeaec] bg-white p-2">
+              <ProductThumb product={p} />
+              <div className="pt-2">
+                <div className="text-[11px] font-semibold text-neutral truncate">{p.brand}</div>
+                <div className="text-[11px] text-neutral/60 truncate">{p.title}</div>
+                <div className="text-sm font-headline font-bold text-neutral pt-1">{formatPrice(p.price)}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Screen 2: Select up to 3 ---------- */
+function StepSelect({ items, selected, toggle, onContinue }) {
+  const count = selected.length;
+  const disabled = count < 2;
+  return (
+    <div className="flex flex-col h-full">
+      <div className="px-4 pt-4 pb-2 flex items-center justify-between shrink-0">
+        <div>
+          <h2 className="font-headline font-bold text-base text-neutral">Select items to compare</h2>
+          <p className="text-[11px] text-neutral/50 font-body">Choose 2–3 items from your wishlist</p>
+        </div>
+        <span className="text-xs font-bold text-primary bg-[#fff0f2] rounded-full px-2.5 py-1">{count}/3</span>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-4 py-3">
+        <div className="grid grid-cols-2 gap-3">
+          {items.map(p => {
+            const isSelected = selected.some(s => s.sku_id === p.sku_id);
+            const atLimit = count >= 3 && !isSelected;
+            return (
+              <button
+                key={p.sku_id}
+                disabled={atLimit}
+                onClick={() => toggle(p)}
+                className={`relative text-left rounded-lg border p-2 transition-all ${isSelected ? 'border-primary ring-2 ring-primary/30 bg-[#fff8f9]' : 'border-[#eaeaec] bg-white'} ${atLimit ? 'opacity-40' : ''}`}
+              >
+                {isSelected && (
+                  <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary text-white text-[11px] flex items-center justify-center z-10">✓</span>
+                )}
+                <ProductThumb product={p} />
+                <div className="pt-2">
+                  <div className="text-[11px] font-semibold text-neutral truncate">{p.brand}</div>
+                  <div className="text-[11px] text-neutral/60 truncate">{p.title}</div>
+                  <div className="text-sm font-headline font-bold text-neutral pt-1">{formatPrice(p.price)}</div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="shrink-0 px-4 py-3 border-t border-[#eaeaec] bg-white">
+        <button
+          disabled={disabled}
+          onClick={onContinue}
+          className={`w-full rounded-xl py-3 font-headline font-bold text-sm transition-colors ${disabled ? 'bg-gray-200 text-gray-400' : 'bg-primary text-white active:scale-[0.99]'}`}
+        >
+          {disabled ? 'Select at least 2 items' : `Continue with ${count} items`}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Screen 3: Parameters ---------- */
+const QUICK_CHIPS = ['Most economical', 'Best looking for me', 'Best suited for office', 'Best for summer'];
+
+function StepParams({ selected, onSubmit, onBack }) {
+  const [query, setQuery] = useState('');
+  const [listening, setListening] = useState(false);
+  const [photoName, setPhotoName] = useState(null);
+  const fileRef = useRef(null);
+  const recognitionRef = useRef(null);
+
+  const startVoice = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { alert('Voice input is not supported in this browser.'); return; }
+    const rec = new SR();
+    rec.lang = 'en-IN';
+    rec.interimResults = false;
+    rec.onstart = () => setListening(true);
+    rec.onend = () => setListening(false);
+    rec.onresult = (e) => setQuery(prev => (prev ? prev + ' ' : '') + e.results[0][0].transcript);
+    recognitionRef.current = rec;
+    rec.start();
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="px-4 pt-4 pb-2 flex items-center gap-2 shrink-0">
+        <BackButton onClick={onBack} />
+        <div>
+          <h2 className="font-headline font-bold text-base text-neutral">What do you want to compare on?</h2>
+          <p className="text-[11px] text-neutral/50 font-body">Comparing {selected.length} items</p>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-4 py-3">
+        <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
+          {selected.map(p => (
+            <div key={p.sku_id} className="shrink-0 w-16">
+              <ProductThumb product={p} size="h-16" />
+            </div>
+          ))}
+        </div>
+
+        <div className="rounded-xl border border-[#eaeaec] bg-white p-3 focus-within:border-primary transition-colors">
+          <textarea
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="e.g. which is more economical, or best suited for office…"
+            className="w-full h-20 resize-none text-sm font-body text-neutral outline-none placeholder:text-neutral/40"
+          />
+          <div className="flex items-center justify-between pt-2 border-t border-[#f0f0f0] mt-1">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={startVoice}
+                className={`w-9 h-9 rounded-full flex items-center justify-center text-base ${listening ? 'bg-primary text-white animate-pulse' : 'bg-[#f3f2ff] text-neutral'}`}
+                title="Speak"
+              >
+                🎤
+              </button>
+              <button
+                onClick={() => fileRef.current && fileRef.current.click()}
+                className="w-9 h-9 rounded-full bg-[#f3f2ff] text-neutral flex items-center justify-center text-base"
+                title="Add photo / scan"
+              >
+                📷
+              </button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={e => e.target.files[0] && setPhotoName(e.target.files[0].name)}
+              />
+            </div>
+            {listening && <span className="text-[11px] text-primary font-medium">Listening…</span>}
+          </div>
+          {photoName && (
+            <div className="mt-2 text-[11px] bg-[#fff0f2] text-primary rounded-lg px-2 py-1.5 flex items-center justify-between">
+              <span>📎 {photoName} attached</span>
+              <button onClick={() => setPhotoName(null)} className="text-neutral/40">×</button>
+            </div>
+          )}
+        </div>
+
+        <div className="pt-3">
+          <p className="text-[11px] text-neutral/50 font-body mb-1.5">Or pick a quick comparison</p>
+          <div className="flex flex-wrap gap-2">
+            {QUICK_CHIPS.map(chip => (
+              <button
+                key={chip}
+                onClick={() => setQuery(chip)}
+                className={`text-xs rounded-full px-3 py-1.5 border transition-colors ${query === chip ? 'border-primary bg-[#fff0f2] text-primary' : 'border-[#d4d5d9] text-neutral/70'}`}
+              >
+                {chip}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="shrink-0 px-4 py-3 border-t border-[#eaeaec] bg-white">
+        <button
+          disabled={!query.trim()}
+          onClick={() => onSubmit(query.trim())}
+          className={`w-full rounded-xl py-3 font-headline font-bold text-sm ${query.trim() ? 'bg-primary text-white active:scale-[0.99]' : 'bg-gray-200 text-gray-400'}`}
+        >
+          Compare
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Screen 4: Recommendation + chat + table ---------- */
+const TABLE_ROWS = [
+  { key: 'price', label: 'Price', get: p => formatPrice(p.price), best: (ps) => ps.reduce((a, b) => (b.price < a.price ? b : a)).sku_id },
+  { key: 'rating', label: 'Rating', get: p => `${p.rating}★ (${p.review_count})`, best: (ps) => ps.reduce((a, b) => (b.rating > a.rating ? b : a)).sku_id },
+  { key: 'material', label: 'Material', get: p => p.material.composition },
+  { key: 'fit', label: 'Fit consensus', get: p => p.fit.review_consensus },
+  { key: 'returns', label: 'Return policy', get: p => `${p.return_policy.window_days}d, ${p.return_policy.type.replace('-', ' ')}`, best: (ps) => ps.reduce((a, b) => (returnScore(b) > returnScore(a) ? b : a)).sku_id },
+  { key: 'praise', label: 'Top praise', get: p => p.trust_signals.top_praise },
+  { key: 'complaint', label: 'Top complaint', get: p => p.trust_signals.top_complaint },
+];
+
+const ASK_TIMEOUT_MS = 20000;
+
+function StepRecommendation({ selected, initialQuery, pendingAnswers, onBack, onAddToCart }) {
+  const [messages, setMessages] = useState(() => [{ role: 'user', text: initialQuery }]);
+  const [waitingId, setWaitingId] = useState(null);
+  const [followUp, setFollowUp] = useState('');
+  const askedInitial = useRef(false);
+  const chatEndRef = useRef(null);
+  const winnerSku = [...messages].reverse().find(m => m.winnerSku)?.winnerSku;
+
+  // Fire the initial comparison question once, on mount.
+  useEffect(() => {
+    if (askedInitial.current) return;
+    askedInitial.current = true;
+    const id = askServer('submit_query', selected.map(p => p.sku_id), [{ role: 'user', text: initialQuery }]);
+    setWaitingId(id);
+  }, []);
+
+  // Watch for our pending action's answer to arrive via the next Streamlit render.
+  useEffect(() => {
+    if (!waitingId || !pendingAnswers) return;
+    const result = pendingAnswers[waitingId];
+    if (result) {
+      setMessages(m => [...m, { role: 'assistant', text: result.answer, winnerSku: result.winner_sku, groqCalled: result.groq_called }]);
+      setWaitingId(null);
+    }
+  }, [pendingAnswers, waitingId]);
+
+  // Don't hang forever if the round trip to Python never completes.
+  useEffect(() => {
+    if (!waitingId) return;
+    const timer = setTimeout(() => {
+      setMessages(m => [...m, { role: 'assistant', text: "That's taking too long to answer — please check the app is connected and try again.", groqCalled: false }]);
+      setWaitingId(null);
+    }, ASK_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [waitingId]);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [messages, waitingId]);
+
+  const askFollowUp = () => {
+    const q = followUp.trim();
+    if (!q || waitingId) return;
+    const nextMessages = [...messages, { role: 'user', text: q }];
+    setMessages(nextMessages);
+    setFollowUp('');
+    const id = askServer('follow_up', selected.map(p => p.sku_id), nextMessages);
+    setWaitingId(id);
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="px-4 pt-4 pb-2 flex items-center gap-2 shrink-0">
+        <BackButton onClick={onBack} />
+        <div>
+          <h2 className="font-headline font-bold text-base text-neutral">Our pick for you</h2>
+          <p className="text-[11px] text-neutral/50 font-body">Comparing {selected.length} items</p>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-4 py-2 space-y-6">
+        <div className="space-y-1.5">
+          {messages.map((m, i) => (
+            <div key={i} className={`chat-enter flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
+              <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-[13px] leading-snug ${m.role === 'user' ? 'bg-primary text-white rounded-br-sm' : 'bg-[#f3f2ff] text-neutral rounded-bl-sm'}`}>
+                {m.text}
+              </div>
+              {m.role === 'assistant' && (
+                <span className={`text-[9px] mt-1 px-1.5 py-0.5 rounded-full font-medium ${m.groqCalled ? 'text-ratingteal bg-[#e6fbf7]' : 'text-neutral/40 bg-black/5'}`}>
+                  {m.groqCalled ? '✨ Groq' : 'offline · data-only'}
+                </span>
+              )}
+            </div>
+          ))}
+          {waitingId && (
+            <div className="flex justify-start">
+              <div className="bg-[#f3f2ff] rounded-2xl rounded-bl-sm px-3 py-2.5 flex gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-neutral/40 pulse-dot" style={{ animationDelay: '0ms' }}></span>
+                <span className="w-1.5 h-1.5 rounded-full bg-neutral/40 pulse-dot" style={{ animationDelay: '150ms' }}></span>
+                <span className="w-1.5 h-1.5 rounded-full bg-neutral/40 pulse-dot" style={{ animationDelay: '300ms' }}></span>
+              </div>
+            </div>
+          )}
+          <div ref={chatEndRef} />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <input
+            value={followUp}
+            onChange={e => setFollowUp(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && askFollowUp()}
+            placeholder="Ask a follow-up…"
+            disabled={!!waitingId}
+            className="flex-1 text-sm rounded-full border border-[#d4d5d9] px-3 py-2 outline-none focus:border-primary disabled:opacity-50"
+          />
+          <button onClick={askFollowUp} disabled={!!waitingId} className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center shrink-0 disabled:opacity-50">➤</button>
+        </div>
+
+        <div>
+          <h3 className="font-headline font-bold text-sm text-neutral mb-2">Side-by-side comparison</h3>
+          <div className="overflow-x-auto rounded-lg border border-[#eaeaec]">
+            <table className="min-w-full text-[11px]">
+              <thead>
+                <tr className="bg-[#f6f5ff]">
+                  <th className="text-left font-semibold text-neutral/60 px-2 py-2 sticky left-0 bg-[#f6f5ff] align-bottom">Parameter</th>
+                  {selected.map(p => (
+                    <th key={p.sku_id} className={`text-left font-semibold px-2 py-2 min-w-[110px] ${p.sku_id === winnerSku ? 'text-primary' : 'text-neutral'}`}>
+                      <div className="flex flex-col gap-1">
+                        <div className="w-10 h-10 rounded-md overflow-hidden">
+                          <ProductThumb product={p} size="h-10" />
+                        </div>
+                        <span>{p.brand}{p.sku_id === winnerSku && <span className="ml-1">👑</span>}</span>
+                      </div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {TABLE_ROWS.map(row => {
+                  const bestSku = row.best ? row.best(selected) : null;
+                  return (
+                    <tr key={row.key} className="border-t border-[#f0f0f0]">
+                      <td className="px-2 py-2 font-medium text-neutral/60 sticky left-0 bg-white">{row.label}</td>
+                      {selected.map(p => (
+                        <td key={p.sku_id} className={`px-2 py-2 align-top ${p.sku_id === bestSku ? 'text-success font-semibold' : 'text-neutral'}`}>
+                          {row.get(p)}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div className="h-2" />
+      </div>
+
+      <div className="shrink-0 px-4 py-3 border-t border-[#eaeaec] bg-white flex gap-2">
+        <button onClick={onBack} className="flex-1 rounded-xl py-3 font-headline font-bold text-sm border border-[#d4d5d9] text-neutral">
+          Back
+        </button>
+        <button
+          onClick={() => onAddToCart(selected.find(p => p.sku_id === winnerSku) || selected[0])}
+          className="flex-[2] rounded-xl py-3 font-headline font-bold text-sm bg-primary text-white active:scale-[0.99]"
+        >
+          Add to Cart
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Screen 5: Regret ---------- */
+function StepRegret({ reason, onBack }) {
+  return (
+    <div className="flex flex-col h-full items-center justify-center px-8 text-center">
+      <div className="text-5xl mb-4">🤔</div>
+      <h2 className="font-headline font-bold text-base text-neutral mb-2">We couldn't compare these</h2>
+      <p className="text-[13px] text-neutral/60 font-body mb-6">{reason || "These items don't have enough common ground to compare meaningfully."}</p>
+      <button onClick={onBack} className="rounded-xl px-6 py-3 font-headline font-bold text-sm bg-primary text-white active:scale-[0.99]">
+        Go back and re-select
+      </button>
+    </div>
+  );
+}
+
+/* ---------- Bottom sheet shell ---------- */
+function CompareSheet({ items, pendingAnswers, onClose }) {
+  const [step, setStep] = useState('select'); // select | params | result
+  const [selected, setSelected] = useState([]);
+  const [query, setQuery] = useState('');
+  const [addedToast, setAddedToast] = useState(false);
+
+  const toggle = (p) => {
+    setSelected(sel => {
+      const exists = sel.some(s => s.sku_id === p.sku_id);
+      if (exists) return sel.filter(s => s.sku_id !== p.sku_id);
+      if (sel.length >= 3) return sel;
+      return [...sel, p];
+    });
+  };
+
+  const comparability = useMemo(() => (selected.length ? assessComparability(selected) : { comparable: true }), [selected]);
+
+  const handleAddToCart = (product) => {
+    setAddedToast(product.brand + ' added to cart');
+    setTimeout(() => setAddedToast(false), 1800);
+  };
+
+  return (
+    <div className="absolute inset-0 z-20">
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+      <div className="sheet-enter absolute bottom-0 left-0 w-full h-[88%] bg-[#fbf8ff] rounded-t-3xl shadow-sheet flex flex-col overflow-hidden">
+        <div className="flex justify-end px-3 pt-3 shrink-0">
+          <CloseButton onClick={onClose} />
+        </div>
+        <div className="flex-1 min-h-0">
+          {step === 'select' && (
+            <StepSelect items={items} selected={selected} toggle={toggle} onContinue={() => setStep('params')} />
+          )}
+          {step === 'params' && (
+            <StepParams
+              selected={selected}
+              onBack={() => setStep('select')}
+              onSubmit={(q) => { setQuery(q); setStep('result'); }}
+            />
+          )}
+          {step === 'result' && (
+            comparability.comparable
+              ? <StepRecommendation selected={selected} initialQuery={query} pendingAnswers={pendingAnswers} onBack={() => setStep('params')} onAddToCart={handleAddToCart} />
+              : <StepRegret reason={comparability.reason} onBack={() => setStep('select')} />
+          )}
+        </div>
+        {addedToast && (
+          <div className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-neutral text-white text-xs rounded-full px-4 py-2 shadow-lg">
+            ✓ {addedToast}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- App ---------- */
+function App() {
+  const renderData = useStreamlitRender();
+  const args = renderData ? renderData.args : null;
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  useEffect(() => {
+    // Fixed-viewport phone-frame layout — a generous static height is enough,
+    // the streamlit_app.py host also forces the iframe to fill the browser viewport.
+    setFrameHeight(900);
+  }, []);
+
+  const items = useMemo(() => {
+    if (!args || !args.wishlist) return [];
+    const flat = [];
+    args.wishlist.forEach(c => c.products.forEach(p => flat.push({ ...p, category: c.category, cluster_id: c.cluster_id })));
+    return flat;
+  }, [args]);
+
+  if (!args || !items.length) {
+    return <div className="h-full flex items-center justify-center text-sm text-neutral/50">Loading wishlist…</div>;
+  }
+
+  return (
+    <div id="phone-frame" className="relative w-[390px] max-w-[92vw] bg-white rounded-[36px] border-8 border-neutral shadow-2xl overflow-hidden" style={{ height: 'min(844px, 92vh)' }}>
+      <WishlistScreen items={items} onOpenCompare={() => setSheetOpen(true)} />
+      {sheetOpen && <CompareSheet items={items} pendingAnswers={args.pendingAnswers || {}} onClose={() => setSheetOpen(false)} />}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
