@@ -112,13 +112,17 @@ function askServer(action, selectedSkus, messages) {
 const PRODUCT_IMAGES = {
   'T1-A': ['mens-shirt', 1],
   'T1-B': ['mens-shirt', 2],
-  'T1-C': ['grey,shirt,men', 1],
   'B4-A': ['leather,bag,black', 1],
   'B4-B': ['leather,bag,black', 3],
   'B4-C': ['brown,leather,bag', 1],
   'S3-A': ['sneaker', 2],
   'S3-B': ['sneaker', 7],
   'S3-C': ['sneaker', 6],
+};
+// T1-C (HRX by Hrithik Roshan) uses a real supplied product photo instead of
+// a LoremFlickr stock keyword — served from this static component's own dir.
+const LOCAL_PRODUCT_IMAGES = {
+  'T1-C': 'images/hrx-grey-shirt.png',
 };
 const CATEGORY_BG = {
   topwear_casual_shirt: 'bg-gradient-to-br from-sky-100 to-indigo-100',
@@ -127,6 +131,7 @@ const CATEGORY_BG = {
 };
 
 function productImageUrl(sku_id, size = 400) {
+  if (LOCAL_PRODUCT_IMAGES[sku_id]) return LOCAL_PRODUCT_IMAGES[sku_id];
   const [keyword, lock] = PRODUCT_IMAGES[sku_id] || ['fashion', 1];
   return `https://loremflickr.com/${size}/${size}/${keyword}?lock=${lock}`;
 }
