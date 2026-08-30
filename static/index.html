@@ -327,18 +327,27 @@ function StepSelect({ items, selected, toggle, onContinue, gridRef, continueRef 
 }
 
 /* ---------- Screen 3: Parameters ---------- */
-const QUICK_CHIPS = ['Most economical', 'Best looking for me', 'Best suited for office', 'Best for summer'];
+const QUICK_CHIPS = ['Most economical', 'Least customer complaints', 'Best suited for office', 'Best for summer'];
 
-function StepParams({ selected, onSubmit, onBack, textareaRef, chipsRef, continueRef, onQueryChange, onFocusText }) {
+const PARAMS_PLACEHOLDER = {
+  topwear_casual_shirt: 'e.g. which of these shirts will stay cool through a warm summer day?',
+  womenswear_handbags: 'e.g. which of these is bigger?',
+  footwear_running_shoes: 'e.g. which is better for trekking?',
+};
+function paramsPlaceholder(selected) {
+  const clusterIds = new Set(selected.map(p => p.cluster_id));
+  if (clusterIds.size === 1) {
+    return PARAMS_PLACEHOLDER[[...clusterIds][0]] || 'e.g. which is more economical, or best suited for office…';
+  }
+  return 'e.g. which is more economical, or best suited for office…';
+}
+
+function StepParams({ selected, onSubmit, onBack, textareaRef, micRef, cameraRef, chipsRef, continueRef, onTourStep }) {
   const [query, setQuery] = useState('');
   const [listening, setListening] = useState(false);
   const [photoName, setPhotoName] = useState(null);
   const fileRef = useRef(null);
   const recognitionRef = useRef(null);
-
-  useEffect(() => {
-    onQueryChange && onQueryChange(query.trim().length > 0);
-  }, [query]);
 
   const startVoice = () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -377,21 +386,23 @@ function StepParams({ selected, onSubmit, onBack, textareaRef, chipsRef, continu
           <textarea
             value={query}
             onChange={e => setQuery(e.target.value)}
-            onFocus={() => onFocusText && onFocusText()}
-            placeholder="e.g. which is more economical, or best suited for office…"
+            onFocus={() => onTourStep && onTourStep(0)}
+            placeholder={paramsPlaceholder(selected)}
             className="w-full h-20 resize-none text-sm font-body text-neutral outline-none placeholder:text-neutral/40"
           />
           <div className="flex items-center justify-between pt-2 border-t border-[#f0f0f0] mt-1">
             <div className="flex items-center gap-2">
               <button
-                onClick={startVoice}
+                ref={micRef}
+                onClick={() => { startVoice(); onTourStep && onTourStep(1); }}
                 className={`w-9 h-9 rounded-full flex items-center justify-center text-base ${listening ? 'bg-primary text-white animate-pulse' : 'bg-[#f3f2ff] text-neutral'}`}
                 title="Speak"
               >
                 🎤
               </button>
               <button
-                onClick={() => fileRef.current && fileRef.current.click()}
+                ref={cameraRef}
+                onClick={() => { fileRef.current && fileRef.current.click(); onTourStep && onTourStep(2); }}
                 className="w-9 h-9 rounded-full bg-[#f3f2ff] text-neutral flex items-center justify-center text-base"
                 title="Add photo / scan"
               >
@@ -422,7 +433,7 @@ function StepParams({ selected, onSubmit, onBack, textareaRef, chipsRef, continu
             {QUICK_CHIPS.map(chip => (
               <button
                 key={chip}
-                onClick={() => setQuery(chip)}
+                onClick={() => { setQuery(chip); onTourStep && onTourStep(3); }}
                 className={`text-xs rounded-full px-3 py-1.5 border transition-colors ${query === chip ? 'border-primary bg-[#fff0f2] text-primary' : 'border-[#d4d5d9] text-neutral/70'}`}
               >
                 {chip}
@@ -660,28 +671,15 @@ function getTourStep(s) {
     };
   }
   if (s.step === 'params') {
-    if (s.hasQuery) {
-      return {
-        id: 'params-continue', targetKey: 'paramsContinueBtn', num: 3,
-        title: 'Ready to compare',
-        body: 'Tap Compare to get your recommendation.',
-        showNext: false,
-      };
-    }
-    if (!s.textFocused) {
-      return {
-        id: 'params-text', targetKey: 'paramsTextarea', num: 3,
-        title: 'Tell us what matters',
-        body: 'Tap here and type what you want to compare on — economical, best for office, summer-ready…',
-        showNext: false,
-      };
-    }
-    return {
-      id: 'params-chips', targetKey: 'paramsChips', num: 3,
-      title: 'Pick a quick comparison',
-      body: 'Tap one of these to get started — or keep typing, speak, or attach a photo above.',
-      showNext: false,
-    };
+    const seq = [
+      { targetKey: 'paramsTextarea', title: 'Tell us what matters', body: 'Tap here and type what you want to compare on.' },
+      { targetKey: 'paramsMicBtn', title: 'Or just speak it', body: 'Tap the mic to dictate your comparison instead of typing.' },
+      { targetKey: 'paramsCameraBtn', title: 'Add a reference photo', body: 'Snap or attach a photo to compare against.' },
+      { targetKey: 'paramsChips', title: 'Or pick a quick comparison', body: 'Tap one of these ready-made comparisons.' },
+      { targetKey: 'paramsContinueBtn', title: 'Ready to compare', body: 'Tap Compare to get your recommendation.' },
+    ];
+    const idx = Math.min(s.paramsSubStep || 0, seq.length - 1);
+    return { id: 'params-' + idx, num: 3, showNext: false, ...seq[idx] };
   }
   if (s.step === 'result') {
     if (!s.comparable) {
@@ -823,8 +821,33 @@ const GROQ_STATUS_META = {
   offline: { color: 'bg-gray-400', label: 'Offline fallback' },
 };
 
-function Sidebar({ collapsed, onToggle, onStartDemo, onResetApp, chatState, tourActive }) {
+const DEMO_SCREENS = [
+  { num: 1, label: 'Wishlist banner', steps: [
+    { id: 'open', label: 'Tap "Want help in comparing?"' },
+  ] },
+  { num: 2, label: 'Select items', steps: [
+    { id: 'pick', label: 'Pick 2–3 products' },
+    { id: 'continue', label: 'Tap Continue' },
+  ] },
+  { num: 3, label: 'What to compare on', steps: [
+    { id: 'params-0', label: 'Type your question' },
+    { id: 'params-1', label: 'Or speak it' },
+    { id: 'params-2', label: 'Or attach a photo' },
+    { id: 'params-3', label: 'Or pick a quick comparison' },
+    { id: 'params-4', label: 'Tap Compare' },
+  ] },
+  { num: 4, label: 'Recommendation', steps: [
+    { id: 'result-chat', label: 'Read the pick, ask follow-ups' },
+    { id: 'result-footer', label: 'Back or Add to cart' },
+  ] },
+  { num: 5, label: "When it can’t compare", steps: [
+    { id: 'regret', label: 'See why, then go back' },
+  ] },
+];
+
+function Sidebar({ collapsed, onToggle, onStartDemo, onResetApp, chatState, tourActive, activeStepId }) {
   const status = GROQ_STATUS_META[deriveGroqStatus(chatState)];
+  const [stepsOpen, setStepsOpen] = useState(false);
   return (
     <div className={`fixed left-0 top-0 bottom-0 z-50 bg-white border-r border-[#eaeaec] shadow-xl flex flex-col transition-all duration-200 ${collapsed ? 'w-11' : 'w-72'}`}>
       <div className="flex items-center justify-between px-3 py-3 border-b border-[#eaeaec] shrink-0">
@@ -850,6 +873,32 @@ function Sidebar({ collapsed, onToggle, onStartDemo, onResetApp, chatState, tour
             <div className="text-[11px] text-neutral/60 font-body leading-snug">
               {tourActive ? 'Guiding you through each step — follow the highlighted button on the phone.' : 'Tour paused. Start demo to resume from the top.'}
             </div>
+          </div>
+
+          <div>
+            <button onClick={() => setStepsOpen(o => !o)} className="w-full flex items-center justify-between mb-1.5">
+              <span className="text-[10px] font-bold text-neutral/40 uppercase tracking-wide">Demo steps</span>
+              <span className="text-neutral/40 text-[10px]">{stepsOpen ? '▾' : '▸'}</span>
+            </button>
+            {stepsOpen && (
+              <div className="space-y-2.5">
+                {DEMO_SCREENS.map(screen => (
+                  <div key={screen.num}>
+                    <div className="text-[10px] font-semibold text-neutral/50 mb-1">Screen {screen.num} · {screen.label}</div>
+                    <ul className="space-y-1">
+                      {screen.steps.map(st => (
+                        <li
+                          key={st.id}
+                          className={`text-[11px] rounded-md px-2 py-1 font-body ${activeStepId === st.id ? 'bg-[#fff0f2] text-primary font-semibold' : 'text-neutral/60'}`}
+                        >
+                          {st.label}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div>
@@ -892,8 +941,7 @@ function CompareSheet({ items, pendingAnswers, onClose, onStateChange, onChatCha
   const [selected, setSelected] = useState([]);
   const [query, setQuery] = useState('');
   const [addedToast, setAddedToast] = useState(false);
-  const [hasQuery, setHasQuery] = useState(false);
-  const [textFocused, setTextFocused] = useState(false);
+  const [paramsSubStep, setParamsSubStep] = useState(0);
 
   const toggle = (p) => {
     setSelected(sel => {
@@ -907,8 +955,8 @@ function CompareSheet({ items, pendingAnswers, onClose, onStateChange, onChatCha
   const comparability = useMemo(() => (selected.length ? assessComparability(selected) : { comparable: true }), [selected]);
 
   useEffect(() => {
-    onStateChange && onStateChange({ step, selectedCount: selected.length, comparable: comparability.comparable, hasQuery, textFocused });
-  }, [step, selected.length, comparability.comparable, hasQuery, textFocused]);
+    onStateChange && onStateChange({ step, selectedCount: selected.length, comparable: comparability.comparable, paramsSubStep });
+  }, [step, selected.length, comparability.comparable, paramsSubStep]);
 
   const handleAddToCart = (product) => {
     setAddedToast(product.brand + ' added to cart');
@@ -932,10 +980,11 @@ function CompareSheet({ items, pendingAnswers, onClose, onStateChange, onChatCha
               onBack={() => setStep('select')}
               onSubmit={(q) => { setQuery(q); setStep('result'); }}
               textareaRef={setTarget('paramsTextarea')}
+              micRef={setTarget('paramsMicBtn')}
+              cameraRef={setTarget('paramsCameraBtn')}
               chipsRef={setTarget('paramsChips')}
               continueRef={setTarget('paramsContinueBtn')}
-              onQueryChange={setHasQuery}
-              onFocusText={() => setTextFocused(true)}
+              onTourStep={(idx) => setParamsSubStep(s => Math.max(s, idx + 1))}
             />
           )}
           {step === 'result' && (
@@ -961,7 +1010,7 @@ function App() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [tourActive, setTourActive] = useState(true); // guided demo is on by default
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [compareState, setCompareState] = useState({ step: 'select', selectedCount: 0, comparable: true, hasQuery: false, textFocused: false });
+  const [compareState, setCompareState] = useState({ step: 'select', selectedCount: 0, comparable: true, paramsSubStep: 0 });
   const [resultSubStep, setResultSubStep] = useState(0);
   const [chatState, setChatState] = useState({ messages: [], waitingId: null });
 
@@ -995,7 +1044,7 @@ function App() {
 
   const resetAll = () => {
     setSheetOpen(false);
-    setCompareState({ step: 'select', selectedCount: 0, comparable: true, hasQuery: false, textFocused: false });
+    setCompareState({ step: 'select', selectedCount: 0, comparable: true, paramsSubStep: 0 });
     setResultSubStep(0);
     setChatState({ messages: [], waitingId: null });
   };
@@ -1022,6 +1071,7 @@ function App() {
         onResetApp={resetApp}
         chatState={chatState}
         tourActive={tourActive}
+        activeStepId={tourStep ? tourStep.id : null}
       />
       <div ref={frameRef} id="phone-frame" className="relative w-[390px] max-w-[92vw] bg-white rounded-[36px] border-8 border-neutral shadow-2xl overflow-hidden" style={{ height: 'min(844px, 92vh)' }}>
         <WishlistScreen items={items} onOpenCompare={() => setSheetOpen(true)} bannerRef={setTarget('bannerBtn')} />
