@@ -112,7 +112,7 @@ function askServer(action, selectedSkus, messages) {
 const PRODUCT_IMAGES = {
   'T1-A': ['mens-shirt', 1],
   'T1-B': ['mens-shirt', 2],
-  'T1-C': ['mens-shirt', 6],
+  'T1-C': ['grey,shirt,men', 1],
   'B4-A': ['leather,bag,black', 1],
   'B4-B': ['leather,bag,black', 3],
   'B4-C': ['brown,leather,bag', 1],
@@ -342,12 +342,36 @@ function paramsPlaceholder(selected) {
   return 'e.g. which is more economical, or best suited for office…';
 }
 
-function StepParams({ selected, onSubmit, onBack, textareaRef, micRef, cameraRef, chipsRef, continueRef, onTourStep }) {
+// Demo-mode auto-fill: same category mapping as the placeholder, but as a
+// real typed-out question (no "e.g." prefix) so the tour can fill it in for real.
+const PARAMS_DEMO_QUERY = {
+  topwear_casual_shirt: 'Which of these shirts will stay cool through a warm summer day?',
+  womenswear_handbags: 'Which of these is bigger?',
+  footwear_running_shoes: 'Which is better for trekking?',
+};
+function paramsDemoQuery(selected) {
+  const clusterIds = new Set(selected.map(p => p.cluster_id));
+  if (clusterIds.size === 1) {
+    return PARAMS_DEMO_QUERY[[...clusterIds][0]] || 'Which is most economical?';
+  }
+  return 'Which is most economical?';
+}
+
+function StepParams({ selected, onSubmit, onBack, textareaRef, micRef, cameraRef, chipsRef, continueRef, onTourStep, tourActive, paramsSubStep }) {
   const [query, setQuery] = useState('');
   const [listening, setListening] = useState(false);
   const [photoName, setPhotoName] = useState(null);
   const fileRef = useRef(null);
   const recognitionRef = useRef(null);
+
+  // Demo mode: once the tour has walked past every input option and lands on
+  // Compare, fill in a real category-aware question so Compare works for real
+  // (a genuine Groq call) without the user having had to type/speak/pick anything.
+  useEffect(() => {
+    if (tourActive && paramsSubStep >= 4 && !query.trim()) {
+      setQuery(paramsDemoQuery(selected));
+    }
+  }, [tourActive, paramsSubStep]);
 
   const startVoice = () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -394,7 +418,7 @@ function StepParams({ selected, onSubmit, onBack, textareaRef, micRef, cameraRef
             <div className="flex items-center gap-2">
               <button
                 ref={micRef}
-                onClick={() => { startVoice(); onTourStep && onTourStep(1); }}
+                onClick={() => { if (!tourActive) startVoice(); onTourStep && onTourStep(1); }}
                 className={`w-9 h-9 rounded-full flex items-center justify-center text-base ${listening ? 'bg-primary text-white animate-pulse' : 'bg-[#f3f2ff] text-neutral'}`}
                 title="Speak"
               >
@@ -402,7 +426,7 @@ function StepParams({ selected, onSubmit, onBack, textareaRef, micRef, cameraRef
               </button>
               <button
                 ref={cameraRef}
-                onClick={() => { fileRef.current && fileRef.current.click(); onTourStep && onTourStep(2); }}
+                onClick={() => { if (!tourActive) { fileRef.current && fileRef.current.click(); } onTourStep && onTourStep(2); }}
                 className="w-9 h-9 rounded-full bg-[#f3f2ff] text-neutral flex items-center justify-center text-base"
                 title="Add photo / scan"
               >
@@ -433,7 +457,7 @@ function StepParams({ selected, onSubmit, onBack, textareaRef, micRef, cameraRef
             {QUICK_CHIPS.map(chip => (
               <button
                 key={chip}
-                onClick={() => { setQuery(chip); onTourStep && onTourStep(3); }}
+                onClick={() => { if (!tourActive) setQuery(chip); onTourStep && onTourStep(3); }}
                 className={`text-xs rounded-full px-3 py-1.5 border transition-colors ${query === chip ? 'border-primary bg-[#fff0f2] text-primary' : 'border-[#d4d5d9] text-neutral/70'}`}
               >
                 {chip}
@@ -755,14 +779,17 @@ function TutorialOverlay({ active, step, targetRefs, frameRef, onSkip, onNext })
     height: rect.height + pad * 2,
   } : null;
 
+  // Always place the tooltip in the dark/opaque strip outside the spotlighted
+  // hole (never on top of the highlighted area itself), preferring whichever
+  // side — above or below the box — actually has room for it.
   let tooltipStyle;
   if (!hasRect) {
     tooltipStyle = { top: '40%' };
-  } else if (box.height > rect.frameHeight * 0.5) {
-    tooltipStyle = { top: box.top + box.height - 12, transform: 'translateY(-100%)' };
   } else {
-    const center = box.top + box.height / 2;
-    tooltipStyle = center < rect.frameHeight / 2
+    const roomAbove = box.top;
+    const roomBelow = rect.frameHeight - (box.top + box.height);
+    const placeBelow = roomBelow >= 130 || (roomBelow >= roomAbove && roomBelow >= 60);
+    tooltipStyle = placeBelow
       ? { top: box.top + box.height + 12 }
       : { top: box.top - 12, transform: 'translateY(-100%)' };
   }
@@ -936,7 +963,7 @@ function Sidebar({ collapsed, onToggle, onStartDemo, onResetApp, chatState, tour
 }
 
 /* ---------- Bottom sheet shell ---------- */
-function CompareSheet({ items, pendingAnswers, onClose, onStateChange, onChatChange, setTarget }) {
+function CompareSheet({ items, pendingAnswers, onClose, onStateChange, onChatChange, setTarget, tourActive }) {
   const [step, setStep] = useState('select'); // select | params | result
   const [selected, setSelected] = useState([]);
   const [query, setQuery] = useState('');
@@ -985,6 +1012,8 @@ function CompareSheet({ items, pendingAnswers, onClose, onStateChange, onChatCha
               chipsRef={setTarget('paramsChips')}
               continueRef={setTarget('paramsContinueBtn')}
               onTourStep={(idx) => setParamsSubStep(s => Math.max(s, idx + 1))}
+              tourActive={tourActive}
+              paramsSubStep={paramsSubStep}
             />
           )}
           {step === 'result' && (
@@ -1083,6 +1112,7 @@ function App() {
             onStateChange={handleCompareStateChange}
             onChatChange={setChatState}
             setTarget={setTarget}
+            tourActive={tourActive}
           />
         )}
         <TutorialOverlay
